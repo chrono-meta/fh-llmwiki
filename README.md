@@ -107,6 +107,23 @@ fw sync --write
 | `doctor` | freshness + stale-pointer report | advisory |
 | `check` | index-drift gate | exit 1 on drift (CI-blocking) |
 
+## Several wikis — company, org, project, person
+
+One wiki per confidentiality boundary, joined by a registry of links — never by copies.
+[`LAYERS.md`](LAYERS.md) is that contract (layers L0–L3, when to split, promotion from a personal
+wiki to an org one); `bin/fw_layers.py` checks the parts a machine can check:
+
+```sh
+python3 bin/fw_layers.py declare .          # this wiki states its layer and points at its parents
+python3 bin/fw_layers.py links .            # intra-wiki links resolve
+python3 bin/fw_layers.py promote notes/x.md ../org-wiki/signals --patterns <org-patterns>   # scrub before any push
+python3 bin/fw_layers.py split-report .     # the numbers behind "should this be two repos?" — no verdict
+```
+
+A database or MCP gateway is an adapter, added only when its condition occurs — each one is a
+build sheet in [`adapters/`](adapters/README.md), nothing wired by default. `examples/federation/`
+is a three-wiki example; `tests/test_layers.sh` is its anchor.
+
 ## Status
 
 v0.1 — extracted from ~2 months of daily operation of a private operator wiki: **981 markdown

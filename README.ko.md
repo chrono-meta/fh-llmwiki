@@ -104,6 +104,23 @@ fw sync --write
 | `doctor` | 신선도 + 죽은 포인터 리포트 | 조언만 |
 | `check` | 인덱스 드리프트 게이트 | 드리프트 시 exit 1 (CI 차단) |
 
+## 위키가 여럿일 때 — 회사 · 조직 · 프로젝트 · 개인
+
+기밀 경계 하나에 위키 하나, 위키끼리는 링크 목록(레지스트리)으로만 잇고 내용은 복제하지 않는다.
+그 계약이 [`LAYERS.md`](LAYERS.md)다(층 L0–L3 · 언제 레포를 나누나 · 개인 위키에서 조직 위키로 올리기).
+기계가 확인할 수 있는 부분은 `bin/fw_layers.py` 가 본다:
+
+```sh
+python3 bin/fw_layers.py declare .          # 이 위키가 자기 층을 밝히고 상위 위키를 가리키나
+python3 bin/fw_layers.py links .            # 위키 안 링크가 다 열리나
+python3 bin/fw_layers.py promote notes/x.md ../org-wiki/signals --patterns <조직 패턴 파일>   # 푸시 전에 스크럽
+python3 bin/fw_layers.py split-report .     # «레포를 둘로 나눠야 하나» 의 근거 숫자 — 판정은 안 한다
+```
+
+DB · MCP 관문은 조건이 실제로 생겼을 때만 붙이는 어댑터다. 각각 [`adapters/`](adapters/README.md)
+의 작업 설명서이고 기본으로 배선된 것은 없다. `examples/federation/` 은 위키 셋짜리 예시,
+`tests/test_layers.sh` 가 그 앵커다.
+
 ## 상태
 
 v0.1 — 약 2개월간 매일 운영된 비공개 운영자 위키에서 추출: **마크다운 981개 파일,

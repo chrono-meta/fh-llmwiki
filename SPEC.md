@@ -2,6 +2,7 @@
 
 > Scope: the contract between humans, agents, and the mechanical layer (`bin/fw.py`).
 > Identity: **content is curated; recency is derived.** Everything else follows.
+> Several wikis (company · org · project · personal): see `LAYERS.md` — the contract *between* wikis.
 
 ## 1. Layer model
 

@@ -105,6 +105,14 @@ fw sync --write
 | `doctor` | 鮮度 + 死んだポインタのレポート | 助言のみ |
 | `check` | インデックスドリフトゲート | ドリフト時exit 1(CIブロック) |
 
+## 複数のウィキ — 会社・組織・プロジェクト・個人
+
+機密境界ごとにウィキを一つ置き、ウィキ同士はリンクの一覧(レジストリ)だけでつなぐ。内容は複製しない。
+契約は [`LAYERS.md`](LAYERS.md)(レイヤー L0–L3・分割の基準・個人から組織への昇格)、
+機械で確かめられる部分は `bin/fw_layers.py`(`declare` · `links` · `frontmatter` · `promote` ·
+`split-report` · `registry`)が見る。DB や MCP ゲートウェイは条件が生じたときだけ足すアダプターで、
+[`adapters/`](adapters/README.md) の手順書として置いてある。既定では何も配線しない。
+
 ## ステータス
 
 v0.1 — 約2ヶ月間毎日運用された非公開オペレータWikiから抽出: **Markdown 981ファイル、

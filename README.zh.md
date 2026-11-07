@@ -99,6 +99,14 @@ fw sync --write
 | `doctor` | 新鲜度 + 失效指针报告 | 仅建议 |
 | `check` | 索引漂移门 | 漂移时 exit 1(CI 阻断) |
 
+## 多个 wiki — 公司、组织、项目、个人
+
+每个保密边界一个 wiki,wiki 之间只用链接清单(registry)相连,不复制内容。
+契约见 [`LAYERS.md`](LAYERS.md)(层 L0–L3、何时拆分仓库、从个人 wiki 提升到组织 wiki);
+机器能检查的部分由 `bin/fw_layers.py`(`declare` · `links` · `frontmatter` · `promote` ·
+`split-report` · `registry`)负责。数据库或 MCP 网关是条件出现时才添加的适配器,
+以操作说明的形式放在 [`adapters/`](adapters/README.md),默认不接入任何一个。
+
 ## 状态
 
 v0.1 — 提炼自一个每日运营约 2 个月的私有运营者 Wiki:**981 个 Markdown 文件、57 天中

@@ -1,0 +1,18 @@
+# Federation registry — lives in the top wiki (here: company-rules). WHERE things are, never WHAT.
+# Everyone who can read this file sees every row, so list only wikis whose existence is not secret.
+- id: company-rules
+  layer: L0
+  repo: <host>/<company>/rules-wiki
+  entry: index.md
+  floor: floor.md          # rules no lower layer may loosen
+- id: org-a
+  layer: L1
+  repo: <host>/<org-a>/wiki
+  entry: index.md
+  inherits: [company-rules]
+- id: org-a/harness-x
+  layer: L2
+  repo: <host>/<org-a>/harness-x-wiki
+  entry: index.md
+  parent: org-a
+  inherits: [company-rules, org-a]
