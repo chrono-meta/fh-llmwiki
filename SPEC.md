@@ -1,7 +1,8 @@
-# forge-wiki SPEC v0.1 — a governed wiki for LLM agents
+# fh-llmwiki SPEC v0.1 — a governed wiki for LLM agents
 
 > Scope: the contract between humans, agents, and the mechanical layer (`bin/fw.py`).
 > Identity: **content is curated; recency is derived.** Everything else follows.
+> Several wikis (company · org · project · personal): see `LAYERS.md` — the contract *between* wikis.
 
 ## 1. Layer model
 
@@ -15,7 +16,7 @@
 ## 2. Format — OKF v0.1-compatible, superset not fork
 
 - Knowledge file = markdown + YAML frontmatter; `type` required (OKF), `description` required
-  (forge-wiki addition — the index derives from it, so it is load-bearing here).
+  (fh-llmwiki addition — the index derives from it, so it is load-bearing here).
 - `index.md`/`log.md` reserved per OKF. The wiki home is `INDEX.md` **or** the OKF root
   `index.md` — first-existing wins and ONE file serves both roles (curated pointers +
   AUTO block are valid OKF sectioned link lists). F-4, field-found: on case-insensitive
@@ -67,7 +68,7 @@
 ## 6. Dual-track positioning
 
 - **Org with an existing project-scaffolding tool**: let that tool lay the project floor;
-  forge-wiki specializes in the KNOWLEDGE layer on top — complementary layers, not competitors.
+  fh-llmwiki specializes in the KNOWLEDGE layer on top — complementary layers, not competitors.
 - **Standalone/personal**: `fw init` golden path (Phase-0 state audit → non-overwriting scaffold).
 
 ## 7. Verification anchor

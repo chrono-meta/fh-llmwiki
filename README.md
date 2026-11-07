@@ -1,11 +1,13 @@
-# forge-wiki
+# fh-llmwiki
+
+> Formerly **forge-wiki** (renamed 2026-11-07). Old GitHub URLs redirect; the `fw` command is unchanged.
 
 English · **[한국어](README.ko.md)** · **[日本語](README.ja.md)** · **[中文](README.zh.md)**
 
 A governed markdown wiki for LLM agents — and the humans they work with.
 
 Most agent-knowledge tools are either fully automatic memory (mem0, Zep, Letta — no
-approval concept) or human curation services. forge-wiki holds the middle: **agents
+approval concept) or human curation services. fh-llmwiki holds the middle: **agents
 write, humans gate, the index maintains itself.**
 
 ## Three design commitments
@@ -28,8 +30,8 @@ Nothing to install: one Python file, no dependencies beyond `python3`. Clone it 
 anywhere, call it by path.
 
 ```sh
-git clone https://github.com/chrono-meta/forge-wiki.git ~/tools/forge-wiki
-alias fw='python3 ~/tools/forge-wiki/bin/fw.py'   # optional — every example below uses `fw`
+git clone https://github.com/chrono-meta/fh-llmwiki.git ~/tools/fh-llmwiki
+alias fw='python3 ~/tools/fh-llmwiki/bin/fw.py'   # optional — every example below uses `fw`
 
 cd your-knowledge-repo   # the repo that will HOLD your wiki — not the clone above
 fw init                  # Phase-0 audit + non-overwriting scaffold (creates signals/)
@@ -90,7 +92,7 @@ writes to is the signal to delete it, not to fill it.**
 `init`-ed yet — it brings its own `INDEX.md`, and `fw init` refuses to overwrite one:
 
 ```sh
-cp -r ~/tools/forge-wiki/examples/org-instance/. your-knowledge-repo/
+cp -r ~/tools/fh-llmwiki/examples/org-instance/. your-knowledge-repo/
 cd your-knowledge-repo
 fw init          # keeps the copied INDEX.md, still appends the AGENTS.md block
 fw sync --write
@@ -107,6 +109,23 @@ fw sync --write
 | `doctor` | freshness + stale-pointer report | advisory |
 | `check` | index-drift gate | exit 1 on drift (CI-blocking) |
 
+## Several wikis — company, org, project, person
+
+One wiki per confidentiality boundary, joined by a registry of links — never by copies.
+[`LAYERS.md`](LAYERS.md) is that contract (layers L0–L3, when to split, promotion from a personal
+wiki to an org one); `bin/fw_layers.py` checks the parts a machine can check:
+
+```sh
+python3 bin/fw_layers.py declare .          # this wiki states its layer and points at its parents
+python3 bin/fw_layers.py links .            # intra-wiki links resolve
+python3 bin/fw_layers.py promote notes/x.md ../org-wiki/signals --patterns <org-patterns>   # scrub before any push
+python3 bin/fw_layers.py split-report .     # the numbers behind "should this be two repos?" — no verdict
+```
+
+A database or MCP gateway is an adapter, added only when its condition occurs — each one is a
+build sheet in [`adapters/`](adapters/README.md), nothing wired by default. `examples/federation/`
+is a three-wiki example; `tests/test_layers.sh` is its anchor.
+
 ## Status
 
 v0.1 — extracted from ~2 months of daily operation of a private operator wiki: **981 markdown
@@ -121,6 +140,6 @@ the sim did not measure.
 - `bin/fw_mcp.py` — zero-dependency read-only MCP server (`wiki_index` / `wiki_get` /
   `wiki_search`). Reads go through MCP; writes go through git + the gate — that asymmetry
   is the write protocol, not a missing feature.
-  `claude mcp add forge-wiki -- python3 <abs>/bin/fw_mcp.py <wiki_root>`
+  `claude mcp add fh-llmwiki -- python3 <abs>/bin/fw_mcp.py <wiki_root>`
 
 See `SPEC.md` for the full contract.
