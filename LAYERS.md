@@ -46,7 +46,8 @@ other way: an L0 rule cannot be loosened by L1–L3.
   ```markdown
   - floor: company-rules → <where its floor page lives> — wins over anything here on a prohibition.
   ```
-  `fw_layers.py declare` fails when a declared parent has no such line, and reports UNMEASURED
+  The line needs the exact id, an arrow (`→` or `->`) and a destination; a line inside a code
+  fence is an example, not a pointer. `fw_layers.py declare` fails when a declared parent has no such line, and reports UNMEASURED
   (never "L1 by default") when `layer:` is missing.
 - **Layer count is not fixed.** Most real setups need L0 · org · personal. An L2 starts as a
   directory inside L1 (`projects/<name>/`) and becomes its own repo only when §3 says so.
@@ -196,6 +197,11 @@ index on every write (SPEC §3.4 measured the loss).
 Anchor: `tests/test_layers.sh` — each command has a known-positive fixture (must fail, with the
 expected message), a known-negative (the clean `examples/federation/`), and an empty-input lane
 (must be UNMEASURED, never PASS). Each guard was removed once and its lane went red (revert probe).
+A cross-family review (codex, round 1) found 9 fail-open inputs — a secret split across a line break,
+a floor pointer with no destination or to a longer id or only inside a code fence, nested registry
+values, `[,]` read as `[]`, an old address-shaped `promoted_from` kept, reference-style links unchecked,
+and a lane whose guard could be removed while it stayed green. Each has a lane that fails on the
+earlier code.
 
 ## Sources
 

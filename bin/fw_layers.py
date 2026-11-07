@@ -56,7 +56,10 @@ def read_frontmatter(p: Path) -> dict | None:
     for ln in text[3:end].splitlines():
         m = re.match(r"([A-Za-z_][\w-]*):\s*(.*?)\s*$", ln)
         if m:
-            out[m.group(1)] = m.group(2).strip().strip("\"'")
+            v = m.group(2)
+            if not v[:1] in ("'", '"'):
+                v = re.sub(r"\s+#.*$", "", v)  # YAML comment after an unquoted value
+            out[m.group(1)] = v.strip().strip("\"'")
     return out
 
 
@@ -65,7 +68,11 @@ def parse_inline_list(v: str) -> list | None:
     if not (v.startswith("[") and v.endswith("]")):
         return None
     inner = v[1:-1].strip()
-    return [x.strip().strip("\"'") for x in inner.split(",") if x.strip()] if inner else []
+    if not inner:
+        return []
+    items = [x.strip().strip("\"'") for x in inner.split(",")]
+    # `[,]` or `[a,,b]` is not an empty list — an element that vanished is an invalid record.
+    return None if any(not x for x in items) else items
 
 
 def home_file(root: Path) -> Path | None:
@@ -102,9 +109,15 @@ def parse_registry(text: str):
             cur = {}
             items.append((n, cur))
             cur[m.group(1)] = m.group(2).strip()
+            if not cur[m.group(1)] or cur[m.group(1)].startswith(("{", "[", "|", ">")):
+                errors.append(f"line {n}: '{m.group(1)}' is not a flat scalar")
             continue
-        m = re.match(r"^\s{2,}([A-Za-z_][\w-]*):\s*(.*)$", line)
+        m = re.match(r"^  ([A-Za-z_][\w-]*):\s*(.*)$", line)  # exactly the item's indent: deeper = nesting
         if m and cur is not None:
+            val = m.group(2).strip()
+            if not val or val.startswith(("{", "|", ">", "&", "*")) or (val.startswith("[") and m.group(1) != "inherits"):
+                errors.append(f"line {n}: '{m.group(1)}' is not a flat scalar — nested values are outside "
+                              f"the supported subset")
             if m.group(1) in cur:
                 errors.append(f"line {n}: duplicate key '{m.group(1)}'")
             cur[m.group(1)] = m.group(2).strip()
@@ -180,7 +193,9 @@ def cmd_declare(root: Path) -> int:
     if layer not in LAYERS:
         return die(f"FAIL  layer '{layer}' not one of {'/'.join(LAYERS)}", 1)
     errors = []
-    body = home.read_text(encoding="utf-8", errors="replace")
+    # Code blocks are examples, not pointers: a home whose only floor line sits in a fence points nowhere.
+    # (fences only — a destination written as inline `code` is still a destination)
+    body = re.sub(r"```.*?```", "", home.read_text(encoding="utf-8", errors="replace"), flags=re.S)
     if layer == "L0":
         floor = fm.get("floor")
         if floor and not (root / floor).is_file():
@@ -196,7 +211,8 @@ def cmd_declare(root: Path) -> int:
             for ref in lst or []:
                 # The pointer must be EXPLICIT: instruction files are not discovered across repos, so
                 # a parent the home does not point at is a parent no agent reads (frontier, LAYERS §2).
-                if not re.search(rf"(?im)^\s*[-*]?\s*\S*\s*floor:\s*{re.escape(ref)}\b\s*\S", body):
+                # exact id (not a longer id that starts with it), then an arrow, then a destination
+                if not re.search(rf"(?im)^\s*[-*]?\s*\S*\s*floor:[ \t]*{re.escape(ref)}[ \t]+(→|->)[ \t]*\S", body):
                     errors.append(f"inherits '{ref}' but the home has no 'floor: {ref} → <where>' pointer line")
     for e in errors:
         print(f"FAIL  {e}")
@@ -206,7 +222,7 @@ def cmd_declare(root: Path) -> int:
 
 # ───────────────────────── links ─────────────────────────
 
-LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)|^ {0,3}\[[^\]]+\]:\s*<?([^\s>]+)", re.M)
 
 
 def strip_code(text: str) -> str:
@@ -222,7 +238,7 @@ def cmd_links(root: Path) -> int:
     for p in files:
         text = strip_code(p.read_text(encoding="utf-8", errors="replace"))
         for m in LINK_RE.finditer(text):
-            tgt = m.group(1)
+            tgt = m.group(1) or m.group(2)  # inline `[x](t)` or reference definition `[x]: t`
             if re.match(r"^[a-z][a-z0-9+.-]*:", tgt, re.I) or tgt.startswith("#"):
                 continue  # http(s)/mailto/…: another repo's jurisdiction — tolerated (OKF)
             if any(c in tgt for c in "<>{}*"):
@@ -320,9 +336,9 @@ def cmd_promote(src: Path, dest_dir: Path, patterns: Path | None, no_org: bool, 
     for name, rx in pats:
         if rx.search(src.name):
             hits.append(f"(file name) [{name}]")
-        for i, ln in enumerate(text.splitlines(), 1):
-            for m in rx.finditer(ln):
-                hits.append(f"line {i} [{name}] {mask(m.group(0))}")
+        # The whole text, not line by line: a pattern with `\s` must still match across a line break.
+        for m in rx.finditer(text):
+            hits.append(f"line {text.count(chr(10), 0, m.start()) + 1} [{name}] {mask(m.group(0))}")
     urls = sorted(set(re.findall(r"https?://[^\s)>\]]+", text)))
     print(f"-- promote: {src.name} → {dest_dir} --")
     print(f"   scanned with {len(BUILTIN)} generic + {len(pats) - len(BUILTIN)} org pattern(s)"
@@ -357,7 +373,9 @@ def add_provenance(text: str, pid: str) -> str:
     stamp = f"promoted_from: {pid}\npromoted_at: {date.today().isoformat()}\nstatus: draft\n"
     end = text.find("\n---", 3) if text.startswith("---") else -1
     if end != -1:
-        head = re.sub(r"(?m)^status:.*\n", "", text[3:end + 1])  # the copy starts life as a draft
+        # the copy starts life as a draft, and any provenance it already carried is replaced —
+        # an older promoted_from may hold the very address this step exists to keep from travelling
+        head = re.sub(r"(?m)^(status|promoted_from|promoted_at):.*\n", "", text[3:end + 1])
         text = "---" + head + stamp + text[end + 1:]
     else:
         text = "---\n" + stamp + "---\n" + text

@@ -41,6 +41,12 @@ d=$(fresh); printf -- '- id: x\n  layer: L1\n  repo: r\n  entry: index.md\n  sum
 lane "R-pos4 content key in the registry"          1 "holds links, not content" $T registry "$d/wikis.yaml"
 d=$(fresh); printf -- '- id: y\n  layer: L1\n  repo: r\n  entry: index.md\n  inherits:\n    - company-rules\n' >> "$d/wikis.yaml"
 lane "R-pos5 block list fails CLOSED, not skipped" 1 "outside the supported subset" $T registry "$d/wikis.yaml"
+d=$(fresh); printf -- '- id: x\n  layer: L1\n  repo: {summary: copied}\n  entry: index.md\n' >> "$d/wikis.yaml"
+lane "R-pos6 mapping value fails CLOSED (codex 4)" 1 "not a flat scalar" $T registry "$d/wikis.yaml"
+d=$(fresh); printf -- '- id: x\n  layer: L1\n  repo: r\n  entry: index.md\n  metadata:\n    note: copied\n' >> "$d/wikis.yaml"
+lane "R-pos7 nested map fails CLOSED (codex 5)"    1 "outside the supported subset" $T registry "$d/wikis.yaml"
+d=$(fresh); printf -- '- id: x\n  layer: L1\n  repo: r\n  entry: index.md\n  inherits: [,]\n' >> "$d/wikis.yaml"
+lane "R-pos8 inherits [,] is not [] (codex 6)"     1 "inline list" $T registry "$d/wikis.yaml"
 e=$(mktemp); printf '# only comments\n' > "$e"
 lane "R-unm  empty registry is UNMEASURED"         2 "UNMEASURED" $T registry "$e"
 
@@ -52,6 +58,20 @@ d=$(fresh); sed -i.bak '/^inherits:/d' "$d/org-a/index.md"
 lane "D-pos2 L1 without inherits key"              1 "undeclared parent" $T declare "$d/org-a"
 d=$(fresh); sed -i.bak 's/^inherits: .*/inherits: []/' "$d/org-a/index.md"
 lane "D-neg2 inherits: [] is an explicit answer"   0 "PASS" $T declare "$d/org-a"
+d=$(fresh); sed -i.bak 's/^- floor: company-rules → .*/- floor: company-rules →/' "$d/org-a/index.md"
+lane "D-pos4 floor pointer with no destination"    1 "no 'floor: company-rules" $T declare "$d/org-a"
+d=$(fresh); sed -i.bak 's/^- floor: company-rules /- floor: company-rules-other /' "$d/org-a/index.md"
+lane "D-pos5 floor pointer to a longer id"         1 "no 'floor: company-rules" $T declare "$d/org-a"
+d=$(fresh); python3 - "$d/org-a/index.md" <<'PY'
+import sys,re;p=sys.argv[1];s=open(p).read()
+line=re.search(r"(?m)^- floor: company-rules .*$",s).group(0)
+open(p,"w").write(s.replace(line,"```\n"+line+"\n```"))
+PY
+lane "D-pos6 floor pointer only inside a code fence" 1 "no 'floor: company-rules" $T declare "$d/org-a"
+d=$(fresh); sed -i.bak 's/^inherits: .*/inherits: [,]/' "$d/org-a/index.md"
+lane "D-pos7 inherits [,] in a home"               1 "inline list" $T declare "$d/org-a"
+d=$(fresh); sed -i.bak -e 's/^layer: L1$/layer: L1   # org wiki/' -e 's/^inherits: \[company-rules\]$/inherits: [company-rules]   # parent/' "$d/org-a/index.md"
+lane "D-neg3 trailing YAML comments are ignored"   0 "PASS (layer L1)" $T declare "$d/org-a"
 d=$(fresh); sed -i.bak '/^layer:/d' "$d/org-a/index.md"
 lane "D-unm  no layer: is UNMEASURED, not L1"      2 "UNMEASURED" $T declare "$d/org-a"
 d=$(fresh); rm "$d/company-rules/floor.md"
@@ -61,10 +81,13 @@ lane "D-pos3 L0 declares a floor file that is gone" 1 "missing" $T declare "$d/c
 lane "L-neg  clean wiki"                           0 "PASS" $T links "$EX/org-a"
 d=$(fresh); echo "See [gone](memory/nope.md)." >> "$d/org-a/index.md"
 lane "L-pos1 broken intra-wiki link"               1 "memory/nope.md" $T links "$d/org-a"
-d=$(fresh); printf 'A [cross-repo](../../company-rules/floor.md) and [web](https://example.com/x.md).\n' >> "$d/org-a/memory/review_rule.md"
+# The outside target must NOT exist — an existing one passes even with the exemption removed (codex 9).
+d=$(fresh); printf 'A [cross-repo](../../nowhere-repo/floor.md) and [web](https://example.com/x.md).\n' >> "$d/org-a/memory/review_rule.md"
 lane "L-neg2 links leaving the wiki are not judged" 0 "1 leave this wiki" $T links "$d/org-a"
 d=$(fresh); printf '```\n[x](memory/in-code.md)\n```\n' >> "$d/org-a/index.md"
 lane "L-neg3 links inside code fences are text"    0 "PASS" $T links "$d/org-a"
+d=$(fresh); printf '[gone][g]\n\n[g]: memory/missing-ref.md\n' >> "$d/org-a/index.md"
+lane "L-pos2 reference-style link is checked (codex 8)" 1 "missing-ref.md" $T links "$d/org-a"
 e=$(mktemp -d)
 lane "L-unm  no markdown is UNMEASURED"            2 "UNMEASURED" $T links "$e"
 
@@ -115,6 +138,16 @@ lane "P-pos6 token BLOCKS, and is masked"          1 "[github-token] gh…" $T p
 if $T promote "$w/src/k.md" "$w/dest" --no-org-patterns 2>&1 | grep -q "abcdefghijklmnop"; then
   echo "❌ P-pos7 the scan printed the secret it found"; fail=$((fail+1))
 else echo "✅ P-pos7 the scan does not echo the secret"; pass=$((pass+1)); fi
+
+printf 'Header: Bearer\nAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n' > "$w/src/split.md"
+lane "P-pos8 secret split across a line break (codex 1)" 1 "[bearer]" $T promote "$w/src/split.md" "$w/dest" --no-org-patterns
+printf 'MED\tacme\\s+internal\n' > "$w/pat2"; printf 'see acme\ninternal notes\n' > "$w/src/split2.md"
+lane "P-pos9 org pattern across a line break"      1 "[org:1]" $T promote "$w/src/split2.md" "$w/dest" --patterns "$w/pat2"
+printf -- '---\ntype: signal\ndescription: d\npromoted_from: /home/alice/private-wiki/project-x.md\n---\nbody\n' > "$w/src/prov.md"
+$T promote "$w/src/prov.md" "$w/dest" --no-org-patterns --write >/dev/null 2>&1
+if [ "$(grep -c '^promoted_from:' "$w/dest/prov.md")" = 1 ] && ! grep -q 'alice' "$w/dest/prov.md"; then
+  echo "✅ P-neg5 an old address-shaped promoted_from is replaced, not kept (codex 7)"; pass=$((pass+1))
+else echo "❌ P-neg5 old provenance survived"; sed 's/^/     /' "$w/dest/prov.md"; fail=$((fail+1)); fi
 
 # ── split-report ──
 lane "S-neg  report runs, names D1 as a question"  0 "D1 (strongest, not countable)" $T split-report "$EX/org-a"
