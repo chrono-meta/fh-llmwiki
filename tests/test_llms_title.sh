@@ -11,6 +11,8 @@
 #   N1  CONTROL — no title → H1 is still the folder name (old output unchanged for every wiki that
 #       declares nothing; downstream CI diffs llms.txt, so this is the lane that keeps them green)
 #   N2  CONTROL — `title:` in the BODY, not the frontmatter, is ignored
+#   N3  a trailing `# comment` is not part of the title (field-found on the first downstream run)
+#   N4  CONTROL — a `#` inside a quoted title stays
 set -u
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FW="python3 $REPO/bin/fw.py"
@@ -31,4 +33,8 @@ mk "$b/plainwiki" "" ""
 _t "N1 no title → folder name (unchanged)" "# plainwiki" "$(head -1 "$b/plainwiki/llms.txt")"
 mk "$b/bodywiki" "" "title: Not A Title"
 _t "N2 title: in the body is ignored" "# bodywiki" "$(head -1 "$b/bodywiki/llms.txt")"
+mk "$b/cwiki" "title: Team Wiki   # a comment" ""
+_t "N3 trailing YAML comment is not part of the title" "# Team Wiki" "$(head -1 "$b/cwiki/llms.txt")"
+mk "$b/qwiki" "title: \"Team # One\"" ""
+_t "N4 a # inside quotes stays" "# Team # One" "$(head -1 "$b/qwiki/llms.txt")"
 echo "-- llms title lanes: $pass passed · $fail failed --"; [ "$fail" -eq 0 ]

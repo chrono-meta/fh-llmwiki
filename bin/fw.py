@@ -266,9 +266,15 @@ def llms_title(root: Path) -> str:
         for ln in lines[1:]:
             if ln.strip() == "---":
                 break
-            m = re.match(r"\s*title:\s*[\"']?(.+?)[\"']?\s*$", ln)
-            if m and m.group(1).strip():
-                return m.group(1).strip()
+            m = re.match(r"\s*title:\s*(.*)$", ln)
+            if m:
+                v = m.group(1).strip()
+                if v[:1] in ("'", '"'):
+                    v = v[1:v.find(v[0], 1)] if v.find(v[0], 1) > 0 else v[1:]
+                else:
+                    v = re.sub(r"\s+#.*$", "", v).strip()  # YAML comment after an unquoted value
+                if v:
+                    return v
     return root.resolve().name
 
 
