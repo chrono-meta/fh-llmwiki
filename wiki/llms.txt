@@ -1,6 +1,6 @@
 # wiki
 
-> Agent-facing markdown wiki (forge-wiki). Read INDEX.md first; files carry OKF-compatible YAML frontmatter (type + description).
+> Agent-facing markdown wiki (fh-llmwiki). Read INDEX.md first; files carry OKF-compatible YAML frontmatter (type + description).
 
 ## signals/
 
