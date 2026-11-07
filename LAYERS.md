@@ -202,6 +202,13 @@ a floor pointer with no destination or to a longer id or only inside a code fenc
 values, `[,]` read as `[]`, an old address-shaped `promoted_from` kept, reference-style links unchecked,
 and a lane whose guard could be removed while it stayed green. Each has a lane that fails on the
 earlier code.
+Round 2 found 7 more (a `~~~` or unclosed fence, quoted-key and block-scalar provenance, YAML tags,
+two valid inputs wrongly refused, `<angle>` link destinations, one more masked lane) — all fixed the
+same way. **Review stopped at round 2 on purpose**: checks that parse text with patterns do not
+converge, each round finds a shape the last did not list. The remaining risk, by name: the registry
+parser refuses any shape it does not recognise (fail-closed), but `declare`, `links` and `promote`
+read markdown and YAML with patterns, so an input shape nobody listed can still pass. `promote`'s
+human step (§6) is the backstop for the one surface where that matters.
 
 ## Sources
 

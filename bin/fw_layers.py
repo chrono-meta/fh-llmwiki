@@ -70,6 +70,8 @@ def parse_inline_list(v: str) -> list | None:
     inner = v[1:-1].strip()
     if not inner:
         return []
+    if inner.endswith(",") and inner[:-1].strip():  # YAML flow sequences allow one trailing comma
+        inner = inner[:-1]
     items = [x.strip().strip("\"'") for x in inner.split(",")]
     # `[,]` or `[a,,b]` is not an empty list — an element that vanished is an invalid record.
     return None if any(not x for x in items) else items
@@ -95,6 +97,13 @@ def md_files(root: Path):
 
 # ───────────────────────── registry ─────────────────────────
 
+def not_flat(key: str, val: str) -> bool:
+    """True when a value is not a flat scalar: empty (a nested block follows), a flow mapping, a block
+    scalar, an anchor/alias, a YAML tag, or a flow list on any key but `inherits`."""
+    return (not val or val.startswith(("{", "|", ">", "&", "*", "!"))
+            or (val.startswith("[") and key != "inherits"))
+
+
 def parse_registry(text: str):
     """A deliberately tiny YAML subset: a top-level list of flat maps, scalar or [inline, list]
     values. Anything else fails CLOSED with a line number — a registry the tool half-reads is
@@ -109,13 +118,13 @@ def parse_registry(text: str):
             cur = {}
             items.append((n, cur))
             cur[m.group(1)] = m.group(2).strip()
-            if not cur[m.group(1)] or cur[m.group(1)].startswith(("{", "[", "|", ">")):
+            if not_flat(m.group(1), cur[m.group(1)]):
                 errors.append(f"line {n}: '{m.group(1)}' is not a flat scalar")
             continue
         m = re.match(r"^  ([A-Za-z_][\w-]*):\s*(.*)$", line)  # exactly the item's indent: deeper = nesting
         if m and cur is not None:
             val = m.group(2).strip()
-            if not val or val.startswith(("{", "|", ">", "&", "*")) or (val.startswith("[") and m.group(1) != "inherits"):
+            if not_flat(m.group(1), val):
                 errors.append(f"line {n}: '{m.group(1)}' is not a flat scalar — nested values are outside "
                               f"the supported subset")
             if m.group(1) in cur:
@@ -195,7 +204,7 @@ def cmd_declare(root: Path) -> int:
     errors = []
     # Code blocks are examples, not pointers: a home whose only floor line sits in a fence points nowhere.
     # (fences only — a destination written as inline `code` is still a destination)
-    body = re.sub(r"```.*?```", "", home.read_text(encoding="utf-8", errors="replace"), flags=re.S)
+    body = strip_fences(home.read_text(encoding="utf-8", errors="replace"))
     if layer == "L0":
         floor = fm.get("floor")
         if floor and not (root / floor).is_file():
@@ -222,12 +231,27 @@ def cmd_declare(root: Path) -> int:
 
 # ───────────────────────── links ─────────────────────────
 
-LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)|^ {0,3}\[[^\]]+\]:\s*<?([^\s>]+)", re.M)
+LINK_RE = re.compile(r"(?<!!)\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)|^ {0,3}\[[^\]]+\]:[ \t]*(?:<([^>\n]+)>|(\S+))", re.M)
+
+
+def strip_fences(text: str) -> str:
+    """Drop fenced code blocks (``` or ~~~, length >= 3). An unclosed fence runs to the end of the
+    file, as CommonMark renders it — so text after it is code, not a pointer."""
+    out, fence = [], None
+    for ln in text.splitlines(keepends=True):
+        m = re.match(r"^ {0,3}(`{3,}|~{3,})", ln)
+        if fence is None:
+            if m:
+                fence = m.group(1)
+                continue
+            out.append(ln)
+        elif m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence) and not ln.strip()[len(m.group(1)):].strip():
+            fence = None
+    return "".join(out)
 
 
 def strip_code(text: str) -> str:
-    text = re.sub(r"```.*?```", "", text, flags=re.S)
-    return re.sub(r"`[^`\n]*`", "", text)
+    return re.sub(r"`[^`\n]*`", "", strip_fences(text))
 
 
 def cmd_links(root: Path) -> int:
@@ -238,7 +262,7 @@ def cmd_links(root: Path) -> int:
     for p in files:
         text = strip_code(p.read_text(encoding="utf-8", errors="replace"))
         for m in LINK_RE.finditer(text):
-            tgt = m.group(1) or m.group(2)  # inline `[x](t)` or reference definition `[x]: t`
+            tgt = m.group(1) or m.group(2) or m.group(3)  # inline `[x](t)` · reference `[x]: <t>` · `[x]: t`
             if re.match(r"^[a-z][a-z0-9+.-]*:", tgt, re.I) or tgt.startswith("#"):
                 continue  # http(s)/mailto/…: another repo's jurisdiction — tolerated (OKF)
             if any(c in tgt for c in "<>{}*"):
@@ -369,13 +393,31 @@ def cmd_promote(src: Path, dest_dir: Path, patterns: Path | None, no_org: bool, 
     return 0
 
 
+def drop_keys(block: str, keys: set) -> str:
+    """Remove top-level keys (quoted or not) AND their indented continuation lines — a block scalar
+    (`key: |`) carries its value on the lines below, and dropping only the key line leaves it."""
+    out, skipping = [], False
+    for ln in block.splitlines(keepends=True):
+        m = re.match(r"""^["']?([A-Za-z_][\w-]*)["']?\s*:""", ln)
+        if m and not ln[:1].isspace():
+            skipping = m.group(1) in keys
+            if skipping:
+                continue
+        elif skipping and (ln[:1].isspace() or not ln.strip()):
+            continue
+        else:
+            skipping = False
+        out.append(ln)
+    return "".join(out)
+
+
 def add_provenance(text: str, pid: str) -> str:
     stamp = f"promoted_from: {pid}\npromoted_at: {date.today().isoformat()}\nstatus: draft\n"
     end = text.find("\n---", 3) if text.startswith("---") else -1
     if end != -1:
         # the copy starts life as a draft, and any provenance it already carried is replaced —
         # an older promoted_from may hold the very address this step exists to keep from travelling
-        head = re.sub(r"(?m)^(status|promoted_from|promoted_at):.*\n", "", text[3:end + 1])
+        head = drop_keys(text[3:end + 1], {"status", "promoted_from", "promoted_at"})
         text = "---" + head + stamp + text[end + 1:]
     else:
         text = "---\n" + stamp + "---\n" + text

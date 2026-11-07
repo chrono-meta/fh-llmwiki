@@ -43,10 +43,15 @@ d=$(fresh); printf -- '- id: y\n  layer: L1\n  repo: r\n  entry: index.md\n  inh
 lane "R-pos5 block list fails CLOSED, not skipped" 1 "outside the supported subset" $T registry "$d/wikis.yaml"
 d=$(fresh); printf -- '- id: x\n  layer: L1\n  repo: {summary: copied}\n  entry: index.md\n' >> "$d/wikis.yaml"
 lane "R-pos6 mapping value fails CLOSED (codex 4)" 1 "not a flat scalar" $T registry "$d/wikis.yaml"
-d=$(fresh); printf -- '- id: x\n  layer: L1\n  repo: r\n  entry: index.md\n  metadata:\n    note: copied\n' >> "$d/wikis.yaml"
+d=$(fresh); # The parent key has a value, so ONLY the indentation guard can catch the deeper line (codex r2).
+printf -- '- id: x\n  layer: L1\n  repo: r\n  entry: index.md\n  metadata: x\n    note: copied\n' >> "$d/wikis.yaml"
 lane "R-pos7 nested map fails CLOSED (codex 5)"    1 "outside the supported subset" $T registry "$d/wikis.yaml"
 d=$(fresh); printf -- '- id: x\n  layer: L1\n  repo: r\n  entry: index.md\n  inherits: [,]\n' >> "$d/wikis.yaml"
 lane "R-pos8 inherits [,] is not [] (codex 6)"     1 "inline list" $T registry "$d/wikis.yaml"
+d=$(fresh); printf -- '- id: x\n  layer: L1\n  repo: !!map {summary: copied}\n  entry: index.md\n' >> "$d/wikis.yaml"
+lane "R-pos9 YAML tag fails CLOSED (codex r2)"     1 "not a flat scalar" $T registry "$d/wikis.yaml"
+d=$(fresh); printf -- '- inherits: [company-rules,]\n  id: x\n  layer: L1\n  repo: r\n  entry: index.md\n' >> "$d/wikis.yaml"
+lane "R-neg3 inherits first + trailing comma is valid (codex r2)" 0 "PASS" $T registry "$d/wikis.yaml"
 e=$(mktemp); printf '# only comments\n' > "$e"
 lane "R-unm  empty registry is UNMEASURED"         2 "UNMEASURED" $T registry "$e"
 
@@ -68,6 +73,15 @@ line=re.search(r"(?m)^- floor: company-rules .*$",s).group(0)
 open(p,"w").write(s.replace(line,"```\n"+line+"\n```"))
 PY
 lane "D-pos6 floor pointer only inside a code fence" 1 "no 'floor: company-rules" $T declare "$d/org-a"
+for fence in '~~~markdown' '```'; do
+  d=$(fresh); python3 - "$d/org-a/index.md" "$fence" <<'PY'
+import sys,re;p,f=sys.argv[1],sys.argv[2];s=open(p).read()
+line=re.search(r"(?m)^- floor: company-rules .*$",s).group(0)
+close="~~~" if f.startswith("~") else ""   # the backtick case is left UNCLOSED on purpose
+open(p,"w").write(s.replace(line,f+"\n"+line+("\n"+close if close else "")))
+PY
+  lane "D-pos8 pointer inside a ${fence:0:3} fence (codex r2)" 1 "no 'floor: company-rules" $T declare "$d/org-a"
+done
 d=$(fresh); sed -i.bak 's/^inherits: .*/inherits: [,]/' "$d/org-a/index.md"
 lane "D-pos7 inherits [,] in a home"               1 "inline list" $T declare "$d/org-a"
 d=$(fresh); sed -i.bak -e 's/^layer: L1$/layer: L1   # org wiki/' -e 's/^inherits: \[company-rules\]$/inherits: [company-rules]   # parent/' "$d/org-a/index.md"
@@ -88,6 +102,8 @@ d=$(fresh); printf '```\n[x](memory/in-code.md)\n```\n' >> "$d/org-a/index.md"
 lane "L-neg3 links inside code fences are text"    0 "PASS" $T links "$d/org-a"
 d=$(fresh); printf '[gone][g]\n\n[g]: memory/missing-ref.md\n' >> "$d/org-a/index.md"
 lane "L-pos2 reference-style link is checked (codex 8)" 1 "missing-ref.md" $T links "$d/org-a"
+d=$(fresh); printf 'x\n' > "$d/org-a/memory/a b.md"; printf '[x][g]\n\n[g]: <memory/a b.md>\n' >> "$d/org-a/index.md"
+lane "L-neg4 <angle> destination with a space (codex r2)" 0 "PASS" $T links "$d/org-a"
 e=$(mktemp -d)
 lane "L-unm  no markdown is UNMEASURED"            2 "UNMEASURED" $T links "$e"
 
@@ -144,6 +160,11 @@ lane "P-pos8 secret split across a line break (codex 1)" 1 "[bearer]" $T promote
 printf 'MED\tacme\\s+internal\n' > "$w/pat2"; printf 'see acme\ninternal notes\n' > "$w/src/split2.md"
 lane "P-pos9 org pattern across a line break"      1 "[org:1]" $T promote "$w/src/split2.md" "$w/dest" --patterns "$w/pat2"
 printf -- '---\ntype: signal\ndescription: d\npromoted_from: /home/alice/private-wiki/project-x.md\n---\nbody\n' > "$w/src/prov.md"
+printf -- '---\ntype: signal\ndescription: d\n"promoted_from": /home/alice/q.md\npromoted_at: |\n  /home/alice/r.md\n---\nbody\n' > "$w/src/prov2.md"
+$T promote "$w/src/prov2.md" "$w/dest" --no-org-patterns --write >/dev/null 2>&1
+if ! grep -q alice "$w/dest/prov2.md" && grep -q '^type: signal$' "$w/dest/prov2.md"; then
+  echo "✅ P-neg6 quoted key and block-scalar provenance are dropped whole (codex r2)"; pass=$((pass+1))
+else echo "❌ P-neg6"; sed 's/^/     /' "$w/dest/prov2.md"; fail=$((fail+1)); fi
 $T promote "$w/src/prov.md" "$w/dest" --no-org-patterns --write >/dev/null 2>&1
 if [ "$(grep -c '^promoted_from:' "$w/dest/prov.md")" = 1 ] && ! grep -q 'alice' "$w/dest/prov.md"; then
   echo "✅ P-neg5 an old address-shaped promoted_from is replaced, not kept (codex 7)"; pass=$((pass+1))
