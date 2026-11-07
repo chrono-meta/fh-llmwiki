@@ -251,11 +251,38 @@ def build_block(root: Path) -> str:
     return "\n".join(out)
 
 
+def llms_title(root: Path) -> str:
+    """The wiki's declared `title:` (home frontmatter) first; the directory name only as a fallback.
+
+    The directory name is a property of the CLONE, not of the wiki: the same wiki checked out as a
+    worktree or under another folder name regenerated a different llms.txt (field-found 2026-11-07,
+    a worktree named after its branch). A wiki that declares no title keeps the old output exactly.
+    """
+    try:
+        lines = head_lines(home_file(root))
+    except OSError:
+        lines = []
+    if lines and lines[0].strip() == "---":
+        for ln in lines[1:]:
+            if ln.strip() == "---":
+                break
+            m = re.match(r"\s*title:\s*(.*)$", ln)
+            if m:
+                v = m.group(1).strip()
+                if v[:1] in ("'", '"'):
+                    v = v[1:v.find(v[0], 1)] if v.find(v[0], 1) > 0 else v[1:]
+                else:
+                    v = re.sub(r"\s+#.*$", "", v).strip()  # YAML comment after an unquoted value
+                if v:
+                    return v
+    return root.resolve().name
+
+
 def write_llms_txt(root: Path):
     """llms.txt (https://llmstxt.org) — derived like the index: H1 + blockquote,
     then per-section link lists with descriptions. Regenerated on every sync."""
-    lines = [f"# {root.resolve().name}", "",
-             "> Agent-facing markdown wiki (forge-wiki). Read INDEX.md first; "
+    lines = [f"# {llms_title(root)}", "",
+             "> Agent-facing markdown wiki (fh-llmwiki). Read INDEX.md first; "
              "files carry OKF-compatible YAML frontmatter (type + description).", ""]
     for section in sections(root):
         files = collect(root, section)
@@ -440,7 +467,7 @@ def cmd_init(root_dir: Path):
     print("[fw init] done — drop .md files into section dirs, then: fw.py sync --write")
 
 
-USAGE = """fw — forge-wiki index tool
+USAGE = """fw — fh-llmwiki (formerly forge-wiki) index tool
 
   fw.py [subcommand] [--write]
 
