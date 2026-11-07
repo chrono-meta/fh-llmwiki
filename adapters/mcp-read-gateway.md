@@ -1,6 +1,6 @@
 ---
 type: adapter
-description: Build sheet for a read-only MCP gateway over one or many forge-wiki repos — caller's token, three tools, no state.
+description: Build sheet for a read-only MCP gateway over one or many fh-llmwiki repos — caller's token, three tools, no state.
 status: current
 ---
 

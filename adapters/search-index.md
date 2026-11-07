@@ -1,6 +1,6 @@
 ---
 type: adapter
-description: Build sheet for a derived, delete-and-rebuild search index over a forge-wiki — never the canon.
+description: Build sheet for a derived, delete-and-rebuild search index over a fh-llmwiki — never the canon.
 status: current
 ---
 

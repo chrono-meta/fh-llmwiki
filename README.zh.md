@@ -1,11 +1,13 @@
-# forge-wiki
+# fh-llmwiki
+
+> 原名 **forge-wiki**(2026-11-07 更名)。旧 GitHub 地址会自动跳转,`fw` 命令不变。
 
 **[English](README.md)** · **[한국어](README.ko.md)** · **[日本語](README.ja.md)** · 中文
 
 为 LLM 智能体 — 以及与它们协作的人 — 打造的内置治理的 Markdown Wiki。
 
 大多数智能体知识工具走向两个极端:要么是全自动记忆(mem0、Zep、Letta — 根本没有
-审批概念),要么是人工策展服务。forge-wiki 坚守中间地带:
+审批概念),要么是人工策展服务。fh-llmwiki 坚守中间地带:
 **智能体来写,人来把关,索引自我维护。**
 
 ## 三项设计承诺
@@ -25,8 +27,8 @@
 无需安装:单个 Python 文件,除 `python3` 外无依赖。clone 一次,放在任意位置,按路径调用。
 
 ```sh
-git clone https://github.com/chrono-meta/forge-wiki.git ~/tools/forge-wiki
-alias fw='python3 ~/tools/forge-wiki/bin/fw.py'   # 可选 —— 下面的示例都用 `fw`
+git clone https://github.com/chrono-meta/fh-llmwiki.git ~/tools/fh-llmwiki
+alias fw='python3 ~/tools/fh-llmwiki/bin/fw.py'   # 可选 —— 下面的示例都用 `fw`
 
 cd your-knowledge-repo   # 承载 Wiki 的仓库 —— 不是上面 clone 的那个
 fw init                  # Phase-0 审计 + 非覆盖式脚手架(创建 signals/)
@@ -82,7 +84,7 @@ your-knowledge-repo/
 `INDEX.md`,而 `fw init` 不会覆盖已存在的 INDEX.md:
 
 ```sh
-cp -r ~/tools/forge-wiki/examples/org-instance/. your-knowledge-repo/
+cp -r ~/tools/fh-llmwiki/examples/org-instance/. your-knowledge-repo/
 cd your-knowledge-repo
 fw init          # 保留复制过来的 INDEX.md,只追加 AGENTS.md 块
 fw sync --write
@@ -118,6 +120,6 @@ v0.1 — 提炼自一个每日运营约 2 个月的私有运营者 Wiki:**981 �
 - `llms.txt` — 每次 `sync --write` 时生成(与索引同为推导物)。
 - `bin/fw_mcp.py` — 零依赖只读 MCP 服务器(`wiki_index` / `wiki_get` / `wiki_search`)。
   读取走 MCP,写入走 git + 门控 — 这种不对称不是缺失的功能,而是写入协议本身。
-  `claude mcp add forge-wiki -- python3 <abs>/bin/fw_mcp.py <wiki_root>`
+  `claude mcp add fh-llmwiki -- python3 <abs>/bin/fw_mcp.py <wiki_root>`
 
 完整契约见 `SPEC.md`。

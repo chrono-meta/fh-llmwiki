@@ -1,6 +1,6 @@
-# forge-wiki LAYERS v0.1 — one org, several wikis, loosely joined
+# fh-llmwiki LAYERS v0.1 — one org, several wikis, loosely joined
 
-> Scope: how several forge-wiki instances relate when a company, its orgs, their projects and
+> Scope: how several fh-llmwiki instances relate when a company, its orgs, their projects and
 > individual people each keep one. `SPEC.md` is the contract *inside* one wiki; this file is the
 > contract *between* wikis. `bin/fw_layers.py` checks the parts a machine can check — that a record
 > is present, typed and pointed-to. Whether to split, promote or publish stays a human call.

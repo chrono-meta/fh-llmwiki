@@ -1,11 +1,13 @@
-# forge-wiki
+# fh-llmwiki
+
+> 이전 이름 **forge-wiki**(2026-11-07 변경). 옛 GitHub 주소는 자동으로 넘어오고 `fw` 명령은 그대로다.
 
 **[English](README.md)** · 한국어 · **[日本語](README.ja.md)** · **[中文](README.zh.md)**
 
 LLM 에이전트 — 그리고 함께 일하는 사람 — 을 위한 거버넌스 내장 마크다운 위키.
 
 에이전트 지식 도구 대부분은 완전 자동 메모리(mem0, Zep, Letta — 승인 개념 자체가 없음)
-아니면 인간 큐레이션 서비스, 둘 중 하나다. forge-wiki는 그 중간을 지킨다:
+아니면 인간 큐레이션 서비스, 둘 중 하나다. fh-llmwiki는 그 중간을 지킨다:
 **에이전트가 쓰고, 사람이 게이트하고, 인덱스는 스스로 유지된다.**
 
 ## 세 가지 설계 약속
@@ -28,8 +30,8 @@ LLM 에이전트 — 그리고 함께 일하는 사람 — 을 위한 거버넌�
 두고 경로로 호출하면 된다.
 
 ```sh
-git clone https://github.com/chrono-meta/forge-wiki.git ~/tools/forge-wiki
-alias fw='python3 ~/tools/forge-wiki/bin/fw.py'   # 선택 — 아래 예시는 전부 `fw` 사용
+git clone https://github.com/chrono-meta/fh-llmwiki.git ~/tools/fh-llmwiki
+alias fw='python3 ~/tools/fh-llmwiki/bin/fw.py'   # 선택 — 아래 예시는 전부 `fw` 사용
 
 cd your-knowledge-repo   # 위키를 담을 레포 — 위에서 clone 한 곳이 아니다
 fw init                  # Phase-0 감사 + 비덮어쓰기 스캐폴드 (signals/ 생성)
@@ -87,7 +89,7 @@ your-knowledge-repo/
 자기 `INDEX.md`를 갖고 오는데 `fw init`은 기존 INDEX.md를 덮어쓰지 않는다:
 
 ```sh
-cp -r ~/tools/forge-wiki/examples/org-instance/. your-knowledge-repo/
+cp -r ~/tools/fh-llmwiki/examples/org-instance/. your-knowledge-repo/
 cd your-knowledge-repo
 fw init          # 복사된 INDEX.md는 그대로 두고, AGENTS.md 블록만 덧붙인다
 fw sync --write
@@ -133,6 +135,6 @@ v0.1 — 약 2개월간 매일 운영된 비공개 운영자 위키에서 추출
 - `llms.txt` — `sync --write`마다 생성 (인덱스처럼 파생물).
 - `bin/fw_mcp.py` — 무의존 읽기전용 MCP 서버 (`wiki_index` / `wiki_get` / `wiki_search`).
   읽기는 MCP로, 쓰기는 git + 게이트로 — 이 비대칭은 빠진 기능이 아니라 쓰기 프로토콜이다.
-  `claude mcp add forge-wiki -- python3 <abs>/bin/fw_mcp.py <wiki_root>`
+  `claude mcp add fh-llmwiki -- python3 <abs>/bin/fw_mcp.py <wiki_root>`
 
 전체 계약은 `SPEC.md` 참고.

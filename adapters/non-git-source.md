@@ -1,6 +1,6 @@
 ---
 type: adapter
-description: Build sheet for importing knowledge that lives outside git (hosted wiki, tickets, chat) into a forge-wiki as markdown.
+description: Build sheet for importing knowledge that lives outside git (hosted wiki, tickets, chat) into a fh-llmwiki as markdown.
 status: current
 ---
 

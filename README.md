@@ -1,11 +1,13 @@
-# forge-wiki
+# fh-llmwiki
+
+> Formerly **forge-wiki** (renamed 2026-11-07). Old GitHub URLs redirect; the `fw` command is unchanged.
 
 English · **[한국어](README.ko.md)** · **[日本語](README.ja.md)** · **[中文](README.zh.md)**
 
 A governed markdown wiki for LLM agents — and the humans they work with.
 
 Most agent-knowledge tools are either fully automatic memory (mem0, Zep, Letta — no
-approval concept) or human curation services. forge-wiki holds the middle: **agents
+approval concept) or human curation services. fh-llmwiki holds the middle: **agents
 write, humans gate, the index maintains itself.**
 
 ## Three design commitments
@@ -28,8 +30,8 @@ Nothing to install: one Python file, no dependencies beyond `python3`. Clone it 
 anywhere, call it by path.
 
 ```sh
-git clone https://github.com/chrono-meta/forge-wiki.git ~/tools/forge-wiki
-alias fw='python3 ~/tools/forge-wiki/bin/fw.py'   # optional — every example below uses `fw`
+git clone https://github.com/chrono-meta/fh-llmwiki.git ~/tools/fh-llmwiki
+alias fw='python3 ~/tools/fh-llmwiki/bin/fw.py'   # optional — every example below uses `fw`
 
 cd your-knowledge-repo   # the repo that will HOLD your wiki — not the clone above
 fw init                  # Phase-0 audit + non-overwriting scaffold (creates signals/)
@@ -90,7 +92,7 @@ writes to is the signal to delete it, not to fill it.**
 `init`-ed yet — it brings its own `INDEX.md`, and `fw init` refuses to overwrite one:
 
 ```sh
-cp -r ~/tools/forge-wiki/examples/org-instance/. your-knowledge-repo/
+cp -r ~/tools/fh-llmwiki/examples/org-instance/. your-knowledge-repo/
 cd your-knowledge-repo
 fw init          # keeps the copied INDEX.md, still appends the AGENTS.md block
 fw sync --write
@@ -138,6 +140,6 @@ the sim did not measure.
 - `bin/fw_mcp.py` — zero-dependency read-only MCP server (`wiki_index` / `wiki_get` /
   `wiki_search`). Reads go through MCP; writes go through git + the gate — that asymmetry
   is the write protocol, not a missing feature.
-  `claude mcp add forge-wiki -- python3 <abs>/bin/fw_mcp.py <wiki_root>`
+  `claude mcp add fh-llmwiki -- python3 <abs>/bin/fw_mcp.py <wiki_root>`
 
 See `SPEC.md` for the full contract.

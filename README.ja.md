@@ -1,11 +1,13 @@
-# forge-wiki
+# fh-llmwiki
+
+> 旧名 **forge-wiki**(2026-11-07 改名)。旧 GitHub URL はリダイレクトされ、`fw` コマンドは変わらない。
 
 **[English](README.md)** · **[한국어](README.ko.md)** · 日本語 · **[中文](README.zh.md)**
 
 LLMエージェント — そして共に働く人間 — のためのガバナンス内蔵マークダウンWiki。
 
 エージェント知識ツールの多くは、完全自動メモリ(mem0、Zep、Letta — 承認という概念が
-存在しない)か、人間によるキュレーションサービスかの両極端。forge-wikiはその中間を守る:
+存在しない)か、人間によるキュレーションサービスかの両極端。fh-llmwikiはその中間を守る:
 **エージェントが書き、人間がゲートし、インデックスは自己維持される。**
 
 ## 3つの設計コミットメント
@@ -28,8 +30,8 @@ LLMエージェント — そして共に働く人間 — のためのガバナ�
 よく、パスで呼び出す。
 
 ```sh
-git clone https://github.com/chrono-meta/forge-wiki.git ~/tools/forge-wiki
-alias fw='python3 ~/tools/forge-wiki/bin/fw.py'   # 任意 — 以下の例はすべて`fw`を使う
+git clone https://github.com/chrono-meta/fh-llmwiki.git ~/tools/fh-llmwiki
+alias fw='python3 ~/tools/fh-llmwiki/bin/fw.py'   # 任意 — 以下の例はすべて`fw`を使う
 
 cd your-knowledge-repo   # Wikiを格納するリポジトリ — 上でcloneした場所ではない
 fw init                  # Phase-0監査 + 非上書きスキャフォールド(signals/を作成)
@@ -88,7 +90,7 @@ your-knowledge-repo/
 自分の`INDEX.md`を持ち込むが、`fw init`は既存のINDEX.mdを上書きしない:
 
 ```sh
-cp -r ~/tools/forge-wiki/examples/org-instance/. your-knowledge-repo/
+cp -r ~/tools/fh-llmwiki/examples/org-instance/. your-knowledge-repo/
 cd your-knowledge-repo
 fw init          # コピーされたINDEX.mdはそのまま、AGENTS.mdブロックのみ追記
 fw sync --write
@@ -126,6 +128,6 @@ v0.1 — 約2ヶ月間毎日運用された非公開オペレータWikiから抽
 - `bin/fw_mcp.py` — 依存ゼロの読み取り専用MCPサーバー(`wiki_index` / `wiki_get` /
   `wiki_search`)。読み取りはMCP、書き込みはgit + ゲート — この非対称は欠けた機能では
   なく書き込みプロトコルそのもの。
-  `claude mcp add forge-wiki -- python3 <abs>/bin/fw_mcp.py <wiki_root>`
+  `claude mcp add fh-llmwiki -- python3 <abs>/bin/fw_mcp.py <wiki_root>`
 
 完全な契約は`SPEC.md`を参照。
